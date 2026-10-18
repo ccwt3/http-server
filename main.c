@@ -6,6 +6,8 @@
 #include <netinet/in.h>
 #include <errno.h>
 
+#define BUF_SIZE 4096
+
 int main()
 {
     // So, here i created a socket based on the IPV6 format (compatible with IPV4)
@@ -94,6 +96,41 @@ int main()
     {
         printf("socket accept failed: %d \n", errno);
         return -1;
+    }
+
+    /*
+        NOTES:
+            recv can store whole requess or partial ones, so it isn't  limited by amount of requests
+            but by it's size.
+
+        Now we get the receiver, this guy as far as i understand copies whatever is in
+        the buffer and returns the amount of bytes copied (receive is a flow blocking process).
+        
+        So what now? We declare the buffer, this guy is the one that will reserve space
+        for storing the request, 4096 is a reasonable size for the buffer (at least for this)
+        so we set it like that.
+
+        Once the buffer is set, we tell the receiver to read from the CLIENT socket because
+        this is the one that will handle this specific client's requests.
+
+        The 0 value represents the flags, at this point as our server is very basic and tiny 
+        we have not to worry about these and so we set the flags to default.
+
+        When checking for error we can also encounter with the value 0 which,
+        has a special meaning in this usecase for it mean that the client
+        closed the conection without any request.
+    */
+    
+    char buf[BUF_SIZE];
+
+    ssize_t receive = recv(clientSocket, buf, BUF_SIZE, 0);
+
+    if (receive == -1) {
+        printf("socket receive failed: %d \n", errno);
+        return -1;
+    } else if (receive == 0) {
+        printf("client closed conection \n");
+        return 0;
     }
 
     return 0;
